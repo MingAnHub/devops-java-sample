@@ -17,6 +17,7 @@ pipeline {
         DOCKERHUB_NAMESPACE = 'mingan2020'
         GITHUB_ACCOUNT = 'mingan'
         APP_NAME = 'devops-java-sample'
+        SONAR_CREDENTIAL_ID = 'sonar-quber'
     }
 
     stages {
@@ -33,7 +34,23 @@ pipeline {
                 }
             }
         }
- 
+        
+    stage('sonarqube analysis') {
+          steps {
+            container ('maven') {
+              withCredentials([string(credentialsId: "$SONAR_CREDENTIAL_ID", variable: 'SONAR_TOKEN')]) {
+                withSonarQubeEnv('sonar') {
+                 sh "mvn sonar:sonar -gs `pwd`/configuration/settings.xml -Dsonar.login=$SONAR_TOKEN"
+                }
+              }
+              timeout(time: 1, unit: 'HOURS') {
+                waitForQualityGate abortPipeline: true
+              }
+            }
+          }
+        }
+    
+  
         stage ('build & push') {
             steps {
                 container ('maven') {
